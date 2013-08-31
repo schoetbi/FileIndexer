@@ -34,5 +34,8 @@ Command line:
 
 # Status
 
-Indexing without command line argument works.
+- Indexing works
+- AreNew and AreOld works
+
+Check the source for details.
 
