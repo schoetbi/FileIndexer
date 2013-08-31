@@ -59,7 +59,19 @@ def Get(con):
 	rows = cur.fetchall()
 	infos = []
 	for r in rows:
-		info = FileInfo(r[0], r[1], '')
+		info = FileInfo(r[0], r[1], r[2])
+		infos.append(info)
+	cur.close()	
+	return infos
+
+def GetForMd5(con, md5):
+	cur = con.cursor()
+	sqlQuery = 'select filename, md5, time from hashes where md5 = ?;'
+	cur.execute(sqlQuery, [md5])
+	rows = cur.fetchall()
+	infos = []
+	for r in rows:
+		info = FileInfo(r[0], r[1], r[2])
 		infos.append(info)
 	cur.close()	
 	return infos
@@ -155,8 +167,9 @@ def GetNumberOfSameMd5(dir1, dir2):
 	try:
 		db1 = OpenDb(dir1)
 		for f2 in files2:
-			md5Cnt = GetMd5Count(db1, f2.Md5)
-			f2.Md5Count = md5Cnt
+			filesIn1 = GetForMd5(db1, f2.Md5)
+			f2.Md5Count = len(filesIn1)
+			f2.Others = filesIn1
 	finally:
 		db1.close()
 
@@ -173,6 +186,8 @@ def AreOld(dir1, dir2):
 	oldfiles = [f for f in files if f.Md5Count > 0]
 	for f in oldfiles:
 		print(f.FileName)
+		for o in f.Others:
+			print ('## %s' % o.FileName)
 
 def GetDupes(dir):
 	exit('not implemented yet')
