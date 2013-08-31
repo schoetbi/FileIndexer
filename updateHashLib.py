@@ -19,8 +19,8 @@ class FileInfo:
 		self.Md5 = md5
 		self.TimeStamp = timeStamp
 
-def OpenDb():
-		con = sqlite.connect('filehash.db')
+def OpenDb(startDir):
+		con = sqlite.connect(os.path.join(startDir, 'filehash.db'))
 		sqlTblExists = 'SELECT count(*) FROM sqlite_master WHERE type=\'table\' AND name=\'hashes\';'
 		cur = con.cursor()    
 		cur.execute(sqlTblExists)
@@ -58,34 +58,40 @@ def Delete(con, fn):
 	cur.execute(sqlDelete, [fn])
 	cur.close()
 
-print('start')
+def IndexDirectory(startFolder):
+	if not os.path.isdir(startFolder):
+		print("'%s' is not a directory"%  startFolder)		
+		return
 
-files = {}
-db = OpenDb()
-counter = 0
-for root, dirs, filenames in os.walk(ur'.'):
-	for f in filenames:
-		fn = os.path.join(root, f)
+	files = {}
+	db = OpenDb(startFolder)
+	counter = 0
+	for root, dirs, filenames in os.walk(startFolder.encode('utf8')):
+		for f in filenames:
+			fn = os.path.join(root, f)
 
-#		modTime = os.path.getmtime(fn)
-		modTimeRaw = time.localtime(os.stat(fn).st_mtime)
-		modTime = time.strftime('%Y-%m-%d %H:%M:%S', modTimeRaw)
-		if IsCurrent(db, fn, modTime):
-			print ('skipped ', fn)
-			continue
+	#		modTime = os.path.getmtime(fn)
+			modTimeRaw = time.localtime(os.stat(fn).st_mtime)
+			modTime = time.strftime('%Y-%m-%d %H:%M:%S', modTimeRaw)
+			if IsCurrent(db, fn, modTime):
+				print ('skipped ', fn)
+				continue
 		
-		sys.stdout.write(fn)
-		h = open(fn, 'r')
-		md5 = md5_for_file(h, 10 * 2**10)
-		h.close()
+			sys.stdout.write(fn)
+			h = open(fn, 'r')
+			md5 = md5_for_file(h, 10 * 2**10)
+			h.close()
 
-		info = FileInfo(fn, md5, modTime)
-		#print(fn, md5, modTime)
-		Save(db, info)
-		print(' done')
-		counter = counter + 1
-		if counter > 10:
-			print('/')			
-			db.commit()
-			counter = 0
+			info = FileInfo(fn, md5, modTime)
+			#print(fn, md5, modTime)
+			Save(db, info)
+			print(' done')
+			counter = counter + 1
+			if counter > 10:
+				print('/')			
+				db.commit()
+				counter = 0
 
+
+if sys.argv[1].lower() == 'index':
+	IndexDirectory(sys.argv[2])
